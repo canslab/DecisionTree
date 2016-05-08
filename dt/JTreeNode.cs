@@ -28,10 +28,7 @@ namespace dt
             get;set;
         }
 
-
         private string value;
-        private JTreeNodeType mNodeType;
-     
-        
+        private JTreeNodeType mNodeType;          
     }
 }

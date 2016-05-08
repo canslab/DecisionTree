@@ -8,12 +8,25 @@ using System.IO;
 
 namespace dt
 {
+    /// <summary>
+    /// 
+    /// JUtility is the collection of algorithms related to decision tree making
+    /// 
+    /// 
+    /// </summary>
     class JUtility
     {
-        
-
-        public static bool readFile(string inputFileName, List<string> attributeList, JDataSet D, 
-                                    Dictionary<string, HashSet<string>> distinctOutcomes)
+        /// <summary>
+        /// 
+        /// read training set file 
+        /// 
+        /// 
+        /// </summary>
+        /// <param name="inputFileName"> the list that will contain the attributes' names </param>
+        /// <param name="attributeList"> the list of attributes </param>
+        /// <param name="D"> the dataSet that will contain tuples </param>
+        /// <returns></returns>
+        public static bool readFile(string inputFileName, List<string> attributeList, JDataSet D)
         {
             bool bReadWell = false;
 
@@ -29,11 +42,9 @@ namespace dt
             // 0 to (# of column - 1) because the last one is class label.
             for(int i = 0; i < namesOfAttributeAndClass.Length - 1; ++i)
             {
-                distinctOutcomes[namesOfAttributeAndClass[i]] = new HashSet<string>();
                 attributeList.Add(namesOfAttributeAndClass[i]);
             }
-            distinctOutcomes["CLASS"] = new HashSet<string>();
-
+           
             // read each line and also each one is a tuple 
             while (!sr.EndOfStream)
             {
@@ -49,11 +60,9 @@ namespace dt
                     if ( i != attrValues.Length - 1 )
                     {
                         eachTuple.setAttrAndItsValue(namesOfAttributeAndClass[i], attrValues[i]);
-                        distinctOutcomes[namesOfAttributeAndClass[i]].Add(attrValues[i]);
                     }
                     else
                     {
-                        distinctOutcomes["CLASS"].Add(attrValues[i]);
                         eachTuple.ClassLabel = attrValues[i];
                     }
                 }
@@ -62,10 +71,26 @@ namespace dt
 
             return bReadWell;
         }
+
+        /// <summary>
+        /// get the entropy value from D
+        /// 
+        /// </summary>
+        /// <param name="D"> target DataSet </param>
+        /// <returns> entropy value </returns>
         public static double getEntropy(JDataSet D)
         {
             Dictionary<string, int> labelCount = new Dictionary<string, int>();
         
+            // iterate through the tuples and count the classification label
+            // examples
+            //         Age   Income  Student     ClassLabel
+            //         '<=30' 'xx'    'xx'         'yes'
+            //         '<=30' 'xx'    'xx'         'no'
+            //         '<=30' 'xx'    'xx'         'yes'
+            // 
+            //   labelCount['yes'] == 2
+            //   labelCount['no'] == 1
             foreach(JTuple eachTuple in D.Tuples)
             {
                 if (!labelCount.ContainsKey(eachTuple.ClassLabel))
@@ -134,20 +159,32 @@ namespace dt
             return retAttributeName;
         }
 
-        public static JTreeNode generateDecisionTree(JDataSet D, List<string> attributeList,
-                                                    Dictionary<string, HashSet<string>> distinctOutcomes)
+        /// <summary>
+        /// It creates decision tree and return its reference 
+        /// 
+        /// </summary>
+        /// <param name="D">D is the dataSet</param>
+        /// <param name="attributeList"> Attribute List, it used to branch nodes </param>
+        /// <returns> Refrence of tree node </returns>
+        public static JTreeNode generateDecisionTree(JDataSet D, List<string> attributeList)
+                                                    
         {
             JTreeNode retTreeNode = null;
+
+            // termination condition 1
             if (D.TuplesCount == 0) // if there is no tuple, return null ! 
             {
                 return retTreeNode;
             }
 
-            if (D.bSameClass()) // if all the tuples are same class
+            // termination condition 2
+            if (D.SameClass) // if all the tuples are same class
             {
                 retTreeNode = new JTreeNode(JTreeNode.JTreeNodeType.RESULT, D.Tuples[0].ClassLabel);
                 return retTreeNode;
             }
+
+            // termination condition 3
             else if (attributeList.Count == 0)  // majority voting
             {
                 retTreeNode = new JTreeNode(JTreeNode.JTreeNodeType.RESULT, D.MajorityClass);
@@ -162,7 +199,6 @@ namespace dt
             
             // attribute_list <- attribute_list - splitting_attribute
             attributeList.Remove(splittingAttribute);
-            
 
             // it is used to store 
             // ex.) '<=30', D1(=t1+t2+t3)
@@ -184,7 +220,7 @@ namespace dt
 
             foreach(string eachBranchName in branchesNames)
             {
-                retTreeNode.PathDirectory[eachBranchName] = generateDecisionTree(branches[eachBranchName], attributeList, distinctOutcomes);
+                retTreeNode.PathDirectory[eachBranchName] = generateDecisionTree(branches[eachBranchName], attributeList);
             }
             
 

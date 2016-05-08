@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace dt
 {
-    /** 
-     * It is the collection of tuples 
-     */
-
+   
+    /// <summary>
+    /// JDataSet is a collection of tuples 
+    /// </summary>
     class JDataSet
     {
         public JDataSet()
@@ -22,25 +22,28 @@ namespace dt
             Tuples = srcTuples;
             mMajorityClass = null;
         }
-        public bool bSameClass()
+        public bool SameClass
         {
-            string firstClass;
-            if (Tuples.Count == 0)
+            get
             {
+                string firstClass;
+                if (Tuples.Count == 0)
+                {
+                    return true;
+                }
+                else
+                {
+                    firstClass = Tuples[0].ClassLabel;
+                }
+                foreach (JTuple eachTuple in Tuples)
+                {
+                    if (firstClass != eachTuple.ClassLabel)
+                    {
+                        return false;
+                    }
+                }
                 return true;
             }
-            else
-            {
-                firstClass = Tuples[0].ClassLabel;
-            }
-            foreach (JTuple eachTuple in Tuples)
-            {
-                if (firstClass != eachTuple.ClassLabel)
-                {
-                    return false;
-                }
-            }
-            return true;
         }
 
         // get # of tuples in this JDataSet
@@ -90,7 +93,7 @@ namespace dt
         public double getProbability(string classLabel)
         {
             int count = 0;
-            if (this.bSameClass())
+            if (this.SameClass)
             {
                 return 0;
             }
