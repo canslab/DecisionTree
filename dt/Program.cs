@@ -18,8 +18,13 @@ namespace dt
         
             JUtility.readFile("dt_train.txt", attributeList, dataSet, distinctOutcomes);
 
+
+            Console.WriteLine( dataSet.MajorityClass );
             Console.WriteLine( JUtility.selectAttributeUsingIG(dataSet, attributeList) );
 
+            var tree = JUtility.generateDecisionTree(dataSet, attributeList, distinctOutcomes);
+
+            int b = 40;
             //Console.WriteLine(JUtility.getEntropy(dataSet));
 
 

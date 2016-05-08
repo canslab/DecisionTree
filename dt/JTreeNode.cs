@@ -13,19 +13,25 @@ namespace dt
         public JTreeNode(JTreeNodeType type, string value)
         {
             this.mNodeType = type;
-            this.pathDirectory = new Dictionary<string, JTreeNode>();
+            PathDirectory = new Dictionary<string, JTreeNode>();
             this.value = value;
         }
         public JTreeNode()
         {
             this.mNodeType = JTreeNodeType.NOTYET;
             this.value = null;
-            this.pathDirectory = new Dictionary<string, JTreeNode>();
+            PathDirectory  = new Dictionary<string, JTreeNode>();
         }
+
+        public Dictionary<string, JTreeNode> PathDirectory
+        {
+            get;set;
+        }
+
 
         private string value;
         private JTreeNodeType mNodeType;
-        private Dictionary<string, JTreeNode> pathDirectory;
+     
         
     }
 }

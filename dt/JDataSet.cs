@@ -14,12 +14,13 @@ namespace dt
     {
         public JDataSet()
         {
-            mMajorityClass = 0;
             Tuples = new List<JTuple>();
+            mMajorityClass = null;
         }
         public JDataSet(List<JTuple> srcTuples)
         {
             Tuples = srcTuples;
+            mMajorityClass = null;
         }
         public bool bSameClass()
         {
@@ -50,7 +51,42 @@ namespace dt
                 return Tuples.Count;
             }            
         }
+        public string MajorityClass
+        {
+            get
+            {
+                if (mMajorityClass != null)
+                {
+                    return mMajorityClass;
+                }
+                
+                Dictionary<string, int> record = new Dictionary<string, int>();
 
+                foreach(JTuple eachTuple in Tuples)
+                {
+                    if (!record.ContainsKey(eachTuple.ClassLabel))
+                    {
+                        record[eachTuple.ClassLabel] = 0;
+                    }
+                    record[eachTuple.ClassLabel]++;
+                }
+
+                var keys = record.Keys;
+                int retMax = 0;
+
+                foreach(string eachKey in keys)
+                {
+                    if (retMax < record[eachKey])
+                    {
+                        retMax = record[eachKey];
+                        mMajorityClass = eachKey;
+                    }
+                }
+                return mMajorityClass;
+            }
+        }
+
+        private string mMajorityClass;
         public double getProbability(string classLabel)
         {
             int count = 0;
@@ -69,7 +105,6 @@ namespace dt
 
             return ((double)count / Tuples.Count);
         }
-
         public void insertTuple(JTuple tuple)
         {
             
@@ -78,11 +113,9 @@ namespace dt
                 Tuples.Add(tuple);
             }
         }
-
         public List<JTuple> Tuples
         {
             get;
         }
-        private int mMajorityClass;
     }
 }

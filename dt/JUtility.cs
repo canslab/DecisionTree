@@ -10,6 +10,7 @@ namespace dt
 {
     class JUtility
     {
+        
 
         public static bool readFile(string inputFileName, List<string> attributeList, JDataSet D, 
                                     Dictionary<string, HashSet<string>> distinctOutcomes)
@@ -87,8 +88,7 @@ namespace dt
 
             return sum;
         }
-        public static string selectAttributeUsingIG(JDataSet D, List<string> attributeList)
-                                             
+        public static string selectAttributeUsingIG(JDataSet D, List<string> attributeList)                                    
         {
             int totalCount = D.TuplesCount;
             double minEntropy = Double.MaxValue;
@@ -133,18 +133,63 @@ namespace dt
 
             return retAttributeName;
         }
-        
 
-        public static JTreeNode generateDecisionTree(JDataSet D, List<string> attributeList)
+        public static JTreeNode generateDecisionTree(JDataSet D, List<string> attributeList,
+                                                    Dictionary<string, HashSet<string>> distinctOutcomes)
         {
             JTreeNode retTreeNode = null;
+            if (D.TuplesCount == 0) // if there is no tuple, return null ! 
+            {
+                return retTreeNode;
+            }
 
-           
+            if (D.bSameClass()) // if all the tuples are same class
+            {
+                retTreeNode = new JTreeNode(JTreeNode.JTreeNodeType.RESULT, D.Tuples[0].ClassLabel);
+                return retTreeNode;
+            }
+            else if (attributeList.Count == 0)  // majority voting
+            {
+                retTreeNode = new JTreeNode(JTreeNode.JTreeNodeType.RESULT, D.MajorityClass);
+                return retTreeNode;
+            }
 
+            // select the attribute that classifies tuples as pure as possible 
+            string splittingAttribute = selectAttributeUsingIG(D, attributeList);
 
+            // make a test node (attribute check node)
+            retTreeNode = new JTreeNode(JTreeNode.JTreeNodeType.TEST, splittingAttribute);
+            
+            // attribute_list <- attribute_list - splitting_attribute
+            attributeList.Remove(splittingAttribute);
+            
+
+            // it is used to store 
+            // ex.) '<=30', D1(=t1+t2+t3)
+            Dictionary<string, JDataSet> branches = new Dictionary<string, JDataSet>();
+
+            foreach(JTuple eachTuple in D.Tuples)
+            {
+                // ex.) splittingAttribute == "age"
+                // ex.) branchName == "<=30"
+                string branchName = eachTuple.getAttrValue(splittingAttribute);
+                if (!branches.ContainsKey(branchName))
+                {
+                    branches[branchName] = new JDataSet();
+                }
+                branches[branchName].insertTuple(eachTuple);
+            }
+            
+            var branchesNames = branches.Keys;
+
+            foreach(string eachBranchName in branchesNames)
+            {
+                retTreeNode.PathDirectory[eachBranchName] = generateDecisionTree(branches[eachBranchName], attributeList, distinctOutcomes);
+            }
+            
+
+            return retTreeNode;
         }
-        
-
     }
 
 }
