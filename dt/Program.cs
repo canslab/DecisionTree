@@ -13,19 +13,20 @@ namespace dt
         {
             List<string> attributeList = new List<string>();
             JDataSet dataSet = new JDataSet();
-            Dictionary<string, HashSet<string>> distinctOutcomes 
-                = new Dictionary<string, HashSet<string>>();
+            JDataSet testDataSet = new JDataSet();
+            Dictionary<string, HashSet<string>> outcomes = new Dictionary<string, HashSet<string>>();
 
-            JUtility.readFile("dt_train.txt", attributeList, dataSet);
-            
-            Console.WriteLine( dataSet.MajorityClass );
-            Console.WriteLine( JUtility.selectAttributeUsingIG(dataSet, attributeList) );
+            JUtility.readFileAndMakeDataSet("dt_train1.txt", attributeList, outcomes, dataSet, 70, testDataSet);
 
-            var tree = JUtility.generateDecisionTree(dataSet, attributeList);
+            Console.WriteLine("most impacting factor (using information gain) = {0} ",JUtility.selectAttributeUsingIG(dataSet, attributeList));
+
+            var tree = JUtility.generateDecisionTree(dataSet, attributeList, outcomes);
+
+            Console.WriteLine("accuracy = {0} ",JUtility.getAccuracyWithinTrainedDataSet(tree, testDataSet));
+
             
-            int b = 40;
-      
-            
+
         }
+
     }
 }

@@ -14,13 +14,15 @@ namespace dt
         {
             this.mNodeType = type;
             PathDirectory = new Dictionary<string, JTreeNode>();
-            this.value = value;
+            this.mValue = value;
+            this.TuplesCount = 0;
         }
         public JTreeNode()
         {
             this.mNodeType = JTreeNodeType.NOTYET;
-            this.value = null;
+            this.mValue = null;
             PathDirectory  = new Dictionary<string, JTreeNode>();
+            this.TuplesCount = 0;
         }
 
         public Dictionary<string, JTreeNode> PathDirectory
@@ -28,7 +30,26 @@ namespace dt
             get;set;
         }
 
-        private string value;
+        public JTreeNodeType NodeType
+        {
+            get
+            {
+                return mNodeType;
+            }
+        }
+        public string Value
+        {
+            get
+            {
+                return mValue;
+            }
+        }
+        public int TuplesCount
+        {
+            get;set;
+        }
+
+        private string mValue;
         private JTreeNodeType mNodeType;          
     }
 }

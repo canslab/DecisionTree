@@ -16,6 +16,22 @@ namespace dt
     /// </summary>
     class JUtility
     {
+        private static int getTotalLineOfFile(StreamReader sr)
+        {
+            int totalLine = 0;
+            
+            while(!sr.EndOfStream)
+            {
+                sr.ReadLine();
+                totalLine++;
+            }
+
+            var baseStream = sr.BaseStream;
+            baseStream.Seek(0, SeekOrigin.Begin);
+            
+            return totalLine--;
+        }
+
         /// <summary>
         /// 
         /// read training set file 
@@ -24,14 +40,20 @@ namespace dt
         /// </summary>
         /// <param name="inputFileName"> the list that will contain the attributes' names </param>
         /// <param name="attributeList"> the list of attributes </param>
-        /// <param name="D"> the dataSet that will contain tuples </param>
+        /// <param name="trainDataSet"> the dataSet that will contain tuples </param>
         /// <returns></returns>
-        public static bool readFile(string inputFileName, List<string> attributeList, JDataSet D)
+        public static bool readFileAndMakeDataSet(string inputFileName, List<string> attributeList,
+            Dictionary<string, HashSet<string>> outcomes, 
+            JDataSet trainDataSet, int trainingPercent, JDataSet testDataSet)
         {
             bool bReadWell = false;
 
             // open training set file 
-            StreamReader sr = new StreamReader(new FileStream("dt_train.txt", FileMode.Open));
+            StreamReader sr = new StreamReader(new FileStream(inputFileName, FileMode.Open));
+
+            double a = (double)trainingPercent / 100;
+
+            int upToThisLine = (int)Math.Ceiling(a * (double)getTotalLineOfFile(sr));
 
             // first get the attribute names and save them to attribute list
             string line = sr.ReadLine();
@@ -43,9 +65,14 @@ namespace dt
             for(int i = 0; i < namesOfAttributeAndClass.Length - 1; ++i)
             {
                 attributeList.Add(namesOfAttributeAndClass[i]);
+                outcomes[namesOfAttributeAndClass[i]] = new HashSet<string>();
             }
-           
+
             // read each line and also each one is a tuple 
+            
+            int row = 1;
+            JDataSet targetDataSet = trainDataSet;
+
             while (!sr.EndOfStream)
             {
                 string eachLine = sr.ReadLine();
@@ -54,21 +81,29 @@ namespace dt
 
                 JTuple eachTuple = new JTuple();
 
+                if (row > upToThisLine)
+                {
+                    targetDataSet = testDataSet;
+                }
+
+
                 // save values to eachTuple(JTuple)
                 for (int i = 0; i < attrValues.Length ; ++i)
                 {
                     if ( i != attrValues.Length - 1 )
                     {
                         eachTuple.setAttrAndItsValue(namesOfAttributeAndClass[i], attrValues[i]);
+                        outcomes[namesOfAttributeAndClass[i]].Add(attrValues[i]);
                     }
                     else
                     {
                         eachTuple.ClassLabel = attrValues[i];
                     }
                 }
-                D.insertTuple(eachTuple);
+                targetDataSet.insertTuple(eachTuple);
+                row++;
             }
-
+            
             return bReadWell;
         }
 
@@ -113,6 +148,7 @@ namespace dt
 
             return sum;
         }
+
         public static string selectAttributeUsingIG(JDataSet D, List<string> attributeList)                                    
         {
             int totalCount = D.TuplesCount;
@@ -166,7 +202,8 @@ namespace dt
         /// <param name="D">D is the dataSet</param>
         /// <param name="attributeList"> Attribute List, it used to branch nodes </param>
         /// <returns> Refrence of tree node </returns>
-        public static JTreeNode generateDecisionTree(JDataSet D, List<string> attributeList)
+        public static JTreeNode generateDecisionTree(JDataSet D, List<string> attributeList,
+            Dictionary<string, HashSet<string>> outcomes)
                                                     
         {
             JTreeNode retTreeNode = null;
@@ -181,6 +218,7 @@ namespace dt
             if (D.SameClass) // if all the tuples are same class
             {
                 retTreeNode = new JTreeNode(JTreeNode.JTreeNodeType.RESULT, D.Tuples[0].ClassLabel);
+                retTreeNode.TuplesCount = D.TuplesCount;
                 return retTreeNode;
             }
 
@@ -188,6 +226,7 @@ namespace dt
             else if (attributeList.Count == 0)  // majority voting
             {
                 retTreeNode = new JTreeNode(JTreeNode.JTreeNodeType.RESULT, D.MajorityClass);
+                retTreeNode.TuplesCount = D.TuplesCount;
                 return retTreeNode;
             }
 
@@ -196,12 +235,16 @@ namespace dt
 
             // make a test node (attribute check node)
             retTreeNode = new JTreeNode(JTreeNode.JTreeNodeType.TEST, splittingAttribute);
-            
+            retTreeNode.TuplesCount = D.TuplesCount;
+
             // attribute_list <- attribute_list - splitting_attribute
             attributeList.Remove(splittingAttribute);
-
-            // it is used to store 
-            // ex.) '<=30', D1(=t1+t2+t3)
+ 
+            // Example
+            //        Key     Value
+            //      '<=30', D1(=t1+t2+t3)
+            // 
+            // Therefore, branches["<=30"] means the data partition that satisfies 'splitting attribute <= 30'
             Dictionary<string, JDataSet> branches = new Dictionary<string, JDataSet>();
 
             foreach(JTuple eachTuple in D.Tuples)
@@ -209,23 +252,66 @@ namespace dt
                 // ex.) splittingAttribute == "age"
                 // ex.) branchName == "<=30"
                 string branchName = eachTuple.getAttrValue(splittingAttribute);
-                if (!branches.ContainsKey(branchName))
+                if (!branches.ContainsKey(branchName)) 
                 {
                     branches[branchName] = new JDataSet();
                 }
                 branches[branchName].insertTuple(eachTuple);
             }
             
-            var branchesNames = branches.Keys;
-
-            foreach(string eachBranchName in branchesNames)
+            foreach(string eachOutcome in outcomes[splittingAttribute])
             {
-                retTreeNode.PathDirectory[eachBranchName] = generateDecisionTree(branches[eachBranchName], attributeList);
+                if (branches.ContainsKey(eachOutcome))
+                {
+                    retTreeNode.PathDirectory[eachOutcome] = generateDecisionTree(branches[eachOutcome], attributeList, outcomes);
+                }
+                else
+                {
+                    // if there is no data partition that satisfies attr(splittingAttribute) == eachOutcome
+                    // majority voting 
+                    retTreeNode.PathDirectory[eachOutcome] = new JTreeNode(JTreeNode.JTreeNodeType.RESULT, D.MajorityClass);
+                }
             }
-            
+
+            // restore for further use
+            attributeList.Add(splittingAttribute);
 
             return retTreeNode;
         }
-    }
 
+        /// <summary>
+        /// 
+        /// It determines the class of testTuple
+        /// 
+        /// </summary>
+        /// <param name="decisionTree"> decision tree </param>
+        /// <param name="testTuple"> the tuple that you wants to classify </param>
+        /// <returns></returns>
+        public static string testTuple(JTreeNode decisionTree, JTuple testTuple)
+        {
+            JTreeNode follower = decisionTree;
+            
+            // follow until the node that is pointed by follower is RESULT type node. (it means classification process has done )
+            while(!(follower.NodeType == JTreeNode.JTreeNodeType.RESULT))
+            {
+                follower = follower.PathDirectory[testTuple.getAttrValue(follower.Value)];
+            }
+
+            return follower.Value;
+        }
+
+        public static double getAccuracyWithinTrainedDataSet(JTreeNode decisionTree, JDataSet testDataSet)
+        {
+            int nCorrectAnswers = 0;
+            foreach(JTuple eachTuple in testDataSet.Tuples)
+            {
+                if ( eachTuple.ClassLabel == testTuple(decisionTree, eachTuple))
+                {
+                    nCorrectAnswers++;
+                }
+            }
+
+            return (double)nCorrectAnswers / testDataSet.TuplesCount;
+        }
+    }
 }

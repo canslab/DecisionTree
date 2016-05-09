@@ -18,7 +18,6 @@ namespace dt
 
     class JTuple
     {
-        private Dictionary<string, string> mAttrAndValue;
     
         // constructor     
         public JTuple()
@@ -47,5 +46,6 @@ namespace dt
         }
        
         
+        private Dictionary<string, string> mAttrAndValue;
     }
 }
