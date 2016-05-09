@@ -16,16 +16,17 @@ namespace dt
             JDataSet testDataSet = new JDataSet();
             Dictionary<string, HashSet<string>> outcomes = new Dictionary<string, HashSet<string>>();
 
-            JUtility.readFileAndMakeDataSet("dt_train1.txt", attributeList, outcomes, dataSet, 70, testDataSet);
+            JDecisionTreeAlgorithm.readFileAndMakeDataSet("dt_train1.txt", attributeList, outcomes, dataSet, 98, testDataSet);
 
-            Console.WriteLine("most impacting factor (using information gain) = {0} ",JUtility.selectAttributeUsingIG(dataSet, attributeList));
+            Console.WriteLine("most impacting factor (using information gain) = {0} ", JDecisionTreeAlgorithm.selectAttributeUsingIG(dataSet, attributeList));
+            Console.WriteLine("most impacting factor (using gain ratio ) = {0} \n", JDecisionTreeAlgorithm.selectAttributeUsingGainRatio(dataSet, attributeList));
 
-            var tree = JUtility.generateDecisionTree(dataSet, attributeList, outcomes);
+            var igTree = JDecisionTreeAlgorithm.generateDecisionTree(dataSet, attributeList, JDecisionTreeAlgorithm.selectAttributeUsingIG, outcomes);
+            var grTree = JDecisionTreeAlgorithm.generateDecisionTree(dataSet, attributeList, JDecisionTreeAlgorithm.selectAttributeUsingGainRatio, outcomes);
 
-            Console.WriteLine("accuracy = {0} ",JUtility.getAccuracyWithinTrainedDataSet(tree, testDataSet));
 
-            
-
+            Console.WriteLine("INFO GAIN accuracy = {0} ", JDecisionTreeAlgorithm.getAccuracyWithinTrainedDataSet(igTree, testDataSet));
+            Console.WriteLine("GAIN RATIO accuracy = {0} \n ", JDecisionTreeAlgorithm.getAccuracyWithinTrainedDataSet(grTree, testDataSet));
         }
 
     }

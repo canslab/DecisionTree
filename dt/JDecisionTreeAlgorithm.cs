@@ -8,30 +8,17 @@ using System.IO;
 
 namespace dt
 {
+    // delegate in order to save the reference to attribute selection method 
+    delegate string AttributeSelectDelegate(JDataSet D, List<string> attributeList);
+
     /// <summary>
     /// 
     /// JUtility is the collection of algorithms related to decision tree making
     /// 
     /// 
     /// </summary>
-    class JUtility
+    class JDecisionTreeAlgorithm
     {
-        private static int getTotalLineOfFile(StreamReader sr)
-        {
-            int totalLine = 0;
-            
-            while(!sr.EndOfStream)
-            {
-                sr.ReadLine();
-                totalLine++;
-            }
-
-            var baseStream = sr.BaseStream;
-            baseStream.Seek(0, SeekOrigin.Begin);
-            
-            return totalLine--;
-        }
-
         /// <summary>
         /// 
         /// read training set file 
@@ -53,7 +40,7 @@ namespace dt
 
             double a = (double)trainingPercent / 100;
 
-            int upToThisLine = (int)Math.Ceiling(a * (double)getTotalLineOfFile(sr));
+            int upToThisLine = (int)Math.Ceiling(a * getTotalLineOfFile(sr));
 
             // first get the attribute names and save them to attribute list
             string line = sr.ReadLine();
@@ -86,7 +73,6 @@ namespace dt
                     targetDataSet = testDataSet;
                 }
 
-
                 // save values to eachTuple(JTuple)
                 for (int i = 0; i < attrValues.Length ; ++i)
                 {
@@ -107,48 +93,15 @@ namespace dt
             return bReadWell;
         }
 
+
         /// <summary>
-        /// get the entropy value from D
+        /// 
+        /// select the attrbute that maximizes information gain 
         /// 
         /// </summary>
-        /// <param name="D"> target DataSet </param>
-        /// <returns> entropy value </returns>
-        public static double getEntropy(JDataSet D)
-        {
-            Dictionary<string, int> labelCount = new Dictionary<string, int>();
-        
-            // iterate through the tuples and count the classification label
-            // examples
-            //         Age   Income  Student     ClassLabel
-            //         '<=30' 'xx'    'xx'         'yes'
-            //         '<=30' 'xx'    'xx'         'no'
-            //         '<=30' 'xx'    'xx'         'yes'
-            // 
-            //   labelCount['yes'] == 2
-            //   labelCount['no'] == 1
-            foreach(JTuple eachTuple in D.Tuples)
-            {
-                if (!labelCount.ContainsKey(eachTuple.ClassLabel))
-                {
-                    labelCount[eachTuple.ClassLabel] = 0;
-                }
-                labelCount[eachTuple.ClassLabel]++;
-            }
-
-            var keys = labelCount.Keys;
-            double sum = 0;
-
-            foreach (string eachClassLabel in keys)
-            {
-                double prob = (double)labelCount[eachClassLabel] / D.TuplesCount;
-                 sum += (Math.Log(prob, 2) * prob);
-                
-            }
-            sum = -sum;
-
-            return sum;
-        }
-
+        /// <param name="D"> data set </param>
+        /// <param name="attributeList"> the list of attributes </param>
+        /// <returns></returns>
         public static string selectAttributeUsingIG(JDataSet D, List<string> attributeList)                                    
         {
             int totalCount = D.TuplesCount;
@@ -196,6 +149,74 @@ namespace dt
         }
 
         /// <summary>
+        /// 
+        /// Select the attribute that maximizes gain ratio
+        /// </summary>
+        /// <param name="D"> dataset </param>
+        /// <param name="attributeList"> attribute list </param>
+        /// <returns> selected attribute name </returns>
+        public static string selectAttributeUsingGainRatio(JDataSet D, List<string> attributeList)
+        {
+            string retAttributeName = "";
+            int totalCount = D.TuplesCount;
+            double previousEntropy = getEntropy(D);
+            double maxGainRatio = Double.MinValue;
+
+            // iterate over the list (=set of attributes)
+            foreach(string eachAttributeName in attributeList)
+            {
+                // <Key, Value> = < value of corresponding attribute, associated data partition >
+                // example)   <">=30", D1> 
+                Dictionary<string, JDataSet> partitions = new Dictionary<string, JDataSet>();
+                
+                foreach(JTuple eachTuple in D.Tuples)
+                {
+                    // ex.)    eachTuple_AttrValue = "<=30"
+                    string eachTuple_AttrValue = eachTuple.getAttrValue(eachAttributeName);
+                    
+                    if (!partitions.ContainsKey(eachTuple_AttrValue))
+                    {
+                        partitions[eachTuple_AttrValue] = new JDataSet();
+                    }
+
+                    partitions[eachTuple_AttrValue].insertTuple(eachTuple);
+                }
+
+                double curaAvgEntropy = 0;
+                double curSplittingInfo = 0;
+                double curInfoGain = 0;
+                double curGainRatio = 0;
+
+                foreach (JDataSet eachDataPartition in partitions.Values)
+                {
+                    double eachWeight = (double)eachDataPartition.TuplesCount / totalCount;
+                    curaAvgEntropy += (eachWeight * getEntropy(eachDataPartition));
+                    curSplittingInfo += (eachWeight * Math.Log(eachWeight, 2));
+                }
+
+                curInfoGain = previousEntropy - curaAvgEntropy;
+                curSplittingInfo = -curSplittingInfo;
+
+                curGainRatio = curInfoGain / curSplittingInfo;
+                
+                if (curGainRatio > maxGainRatio)
+                {
+                    maxGainRatio = curGainRatio;
+                    retAttributeName = eachAttributeName;
+                }
+            }
+
+            return retAttributeName;
+        }
+
+        public static string selectAttributeUsingGiniIndex(JDataSet D, List<string> attributeList)
+        {
+            double curGiniIndex = 0;
+
+            return "ooowa";
+        }
+
+        /// <summary>
         /// It creates decision tree and return its reference 
         /// 
         /// </summary>
@@ -203,8 +224,8 @@ namespace dt
         /// <param name="attributeList"> Attribute List, it used to branch nodes </param>
         /// <returns> Refrence of tree node </returns>
         public static JTreeNode generateDecisionTree(JDataSet D, List<string> attributeList,
-            Dictionary<string, HashSet<string>> outcomes)
-                                                    
+                                                    AttributeSelectDelegate attributeSelector, 
+                                                    Dictionary<string, HashSet<string>> outcomes)
         {
             JTreeNode retTreeNode = null;
 
@@ -231,7 +252,7 @@ namespace dt
             }
 
             // select the attribute that classifies tuples as pure as possible 
-            string splittingAttribute = selectAttributeUsingIG(D, attributeList);
+            string splittingAttribute = attributeSelector(D, attributeList);
 
             // make a test node (attribute check node)
             retTreeNode = new JTreeNode(JTreeNode.JTreeNodeType.TEST, splittingAttribute);
@@ -263,7 +284,7 @@ namespace dt
             {
                 if (branches.ContainsKey(eachOutcome))
                 {
-                    retTreeNode.PathDirectory[eachOutcome] = generateDecisionTree(branches[eachOutcome], attributeList, outcomes);
+                    retTreeNode.PathDirectory[eachOutcome] = generateDecisionTree(branches[eachOutcome], attributeList, attributeSelector, outcomes);
                 }
                 else
                 {
@@ -303,15 +324,79 @@ namespace dt
         public static double getAccuracyWithinTrainedDataSet(JTreeNode decisionTree, JDataSet testDataSet)
         {
             int nCorrectAnswers = 0;
-            foreach(JTuple eachTuple in testDataSet.Tuples)
+            if (testDataSet.TuplesCount == 0)
+            {
+                return 1;
+            }
+
+            foreach (JTuple eachTuple in testDataSet.Tuples)
             {
                 if ( eachTuple.ClassLabel == testTuple(decisionTree, eachTuple))
                 {
                     nCorrectAnswers++;
                 }
             }
+            
 
             return (double)nCorrectAnswers / testDataSet.TuplesCount;
+        }
+       
+        /// <summary>
+        /// get the entropy value from D
+        /// 
+        /// </summary>
+        /// <param name="D"> target DataSet </param>
+        /// <returns> entropy value </returns>
+        private static double getEntropy(JDataSet D)
+        {
+            Dictionary<string, int> labelCount = new Dictionary<string, int>();
+        
+            // iterate through the tuples and count the classification label
+            // examples
+            //         Age   Income  Student     ClassLabel
+            //         '<=30' 'xx'    'xx'         'yes'
+            //         '<=30' 'xx'    'xx'         'no'
+            //         '<=30' 'xx'    'xx'         'yes'
+            // 
+            //   labelCount['yes'] == 2
+            //   labelCount['no'] == 1
+            foreach(JTuple eachTuple in D.Tuples)
+            {
+                if (!labelCount.ContainsKey(eachTuple.ClassLabel))
+                {
+                    labelCount[eachTuple.ClassLabel] = 0;
+                }
+                labelCount[eachTuple.ClassLabel]++;
+            }
+
+            var keys = labelCount.Keys;
+            double sum = 0;
+
+            foreach (string eachClassLabel in keys)
+            {
+                double prob = (double)labelCount[eachClassLabel] / D.TuplesCount;
+                 sum += (Math.Log(prob, 2) * prob);
+                
+            }
+            sum = -sum;
+
+            return sum;
+        }
+
+        private static int getTotalLineOfFile(StreamReader sr)
+        {
+            int totalLine = 0;
+            
+            while(!sr.EndOfStream)
+            {
+                sr.ReadLine();
+                totalLine++;
+            }
+
+            var baseStream = sr.BaseStream;
+            baseStream.Seek(0, SeekOrigin.Begin);
+            
+            return totalLine--;
         }
     }
 }
