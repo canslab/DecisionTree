@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 
 namespace dt
 {
-   
     /// <summary>
     /// JDataSet is a collection of tuples 
     /// </summary>

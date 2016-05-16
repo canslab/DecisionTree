@@ -11,22 +11,16 @@ namespace dt
     {
         static void Main(string[] args)
         {
-            List<string> attributeList = new List<string>();
-            JDataSet dataSet = new JDataSet();
-            JDataSet testDataSet = new JDataSet();
-            Dictionary<string, HashSet<string>> outcomes = new Dictionary<string, HashSet<string>>();
+            JDecisionTree infoGainTree = new JDecisionTree("dt_train1.txt", 90);
+            infoGainTree.makeTree(JDecisionTree.AttributeSelectionMeasure.INFO_GAIN);
+            Console.WriteLine("INFO GAIN RATIO's trained accuracy = " + infoGainTree.getAccuracyWithinTrainedDataSet());
 
-            JDecisionTreeAlgorithm.readFileAndMakeDataSet("dt_train1.txt", attributeList, outcomes, dataSet, 98, testDataSet);
+            JDecisionTree gainRatioTree = new JDecisionTree("dt_train1.txt", 90);
+            gainRatioTree.makeTree(JDecisionTree.AttributeSelectionMeasure.GAIN_RATIO);
+            Console.WriteLine("GAIN RATIO's trained accuracy = " + gainRatioTree.getAccuracyWithinTrainedDataSet());
 
-            Console.WriteLine("most impacting factor (using information gain) = {0} ", JDecisionTreeAlgorithm.selectAttributeUsingIG(dataSet, attributeList));
-            Console.WriteLine("most impacting factor (using gain ratio ) = {0} \n", JDecisionTreeAlgorithm.selectAttributeUsingGainRatio(dataSet, attributeList));
-
-            var igTree = JDecisionTreeAlgorithm.generateDecisionTree(dataSet, attributeList, JDecisionTreeAlgorithm.selectAttributeUsingIG, outcomes);
-            var grTree = JDecisionTreeAlgorithm.generateDecisionTree(dataSet, attributeList, JDecisionTreeAlgorithm.selectAttributeUsingGainRatio, outcomes);
-            
-                                        
-            Console.WriteLine("INFO GAIN accuracy = {0} ", JDecisionTreeAlgorithm.getAccuracyWithinTrainedDataSet(igTree, testDataSet));
-            Console.WriteLine("GAIN RATIO accuracy = {0} \n ", JDecisionTreeAlgorithm.getAccuracyWithinTrainedDataSet(grTree, testDataSet));
+            //Console.WriteLine("most impacting factor (using information gain) = {0} ", JDecisionTreeAlgorithm.selectAttributeUsingIG(dataSet, attributeList));
+            //Console.WriteLine("most impacting factor (using gain ratio ) = {0} \n", JDecisionTreeAlgorithm.selectAttributeUsingGainRatio(dataSet, attributeList));
         }
 
     }
