@@ -23,8 +23,8 @@ namespace dt
 
             var igTree = JDecisionTreeAlgorithm.generateDecisionTree(dataSet, attributeList, JDecisionTreeAlgorithm.selectAttributeUsingIG, outcomes);
             var grTree = JDecisionTreeAlgorithm.generateDecisionTree(dataSet, attributeList, JDecisionTreeAlgorithm.selectAttributeUsingGainRatio, outcomes);
-
-
+            
+                                        
             Console.WriteLine("INFO GAIN accuracy = {0} ", JDecisionTreeAlgorithm.getAccuracyWithinTrainedDataSet(igTree, testDataSet));
             Console.WriteLine("GAIN RATIO accuracy = {0} \n ", JDecisionTreeAlgorithm.getAccuracyWithinTrainedDataSet(grTree, testDataSet));
         }

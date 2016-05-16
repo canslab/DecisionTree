@@ -18,7 +18,6 @@ namespace dt
 
     class JTuple
     {
-    
         // constructor     
         public JTuple()
         {
@@ -29,23 +28,38 @@ namespace dt
             ClassLabel = null;
         }
 
+        // this indicates the classification result
         public string ClassLabel
         {
             get; set;
         }
-         // this indicates the classification result
 
-        public void setAttrAndItsValue(string attrName, string attrValue)
+        /// <summary>
+        /// this is used to know the value of the corresponding attribute name 
+        /// </summary>
+        /// <param name="arg"> attribute name </param>
+        /// <returns> corresponding value </returns>
+        public string this[string arg]
         {
-            mAttrAndValue[attrName] = attrValue;
+            get
+            {
+                if(mAttrAndValue.ContainsKey(arg) == true)
+                {
+                    return mAttrAndValue[arg];
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            set
+            {
+                mAttrAndValue[arg] = value;
+            }
         }
 
-        public string getAttrValue(string attrName)
-        {
-            return mAttrAndValue[attrName];
-        }
-       
-        
+
+        // this member variable is encapsulated using above indexer.
         private Dictionary<string, string> mAttrAndValue;
     }
 }

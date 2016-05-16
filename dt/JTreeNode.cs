@@ -13,7 +13,6 @@ namespace dt
         public JTreeNode(JTreeNodeType type, string value)
         {
             this.mNodeType = type;
-            PathDirectory = new Dictionary<string, JTreeNode>();
             this.mValue = value;
             this.TuplesCount = 0;
         }
@@ -21,13 +20,28 @@ namespace dt
         {
             this.mNodeType = JTreeNodeType.NOTYET;
             this.mValue = null;
-            PathDirectory  = new Dictionary<string, JTreeNode>();
             this.TuplesCount = 0;
         }
 
-        public Dictionary<string, JTreeNode> PathDirectory
+        private Dictionary<string, JTreeNode> mPathDirectory = new Dictionary<string, JTreeNode>();
+
+        public JTreeNode this[string outcome]
         {
-            get;set;
+            get
+            {
+                if (mPathDirectory.ContainsKey(outcome))
+                {
+                    return mPathDirectory[outcome];
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            set
+            {
+                mPathDirectory[outcome] = value;
+            }
         }
 
         public JTreeNodeType NodeType
@@ -37,7 +51,10 @@ namespace dt
                 return mNodeType;
             }
         }
-        public string Value
+
+        // when the type of tree node is "RESULT" --> indicator means "CLASS LABEL"
+        // when the type of tree node is "TEST" --> indicator means "attribute name"
+        public string Indicator
         {
             get
             {

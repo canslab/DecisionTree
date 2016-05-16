@@ -36,60 +36,61 @@ namespace dt
             bool bReadWell = false;
 
             // open training set file 
-            StreamReader sr = new StreamReader(new FileStream(inputFileName, FileMode.Open));
-
-            double a = (double)trainingPercent / 100;
-
-            int upToThisLine = (int)Math.Ceiling(a * getTotalLineOfFile(sr));
-
-            // first get the attribute names and save them to attribute list
-            string line = sr.ReadLine();
-
-            // every column names are seperated with '\t' so delimeter is '\t'
-            string[] namesOfAttributeAndClass = line.Split('\t');
-            
-            // 0 to (# of column - 1) because the last one is class label.
-            for(int i = 0; i < namesOfAttributeAndClass.Length - 1; ++i)
+            using (StreamReader sr = new StreamReader(new FileStream(inputFileName, FileMode.Open)))
             {
-                attributeList.Add(namesOfAttributeAndClass[i]);
-                outcomes[namesOfAttributeAndClass[i]] = new HashSet<string>();
-            }
+                double a = (double)trainingPercent / 100;
 
-            // read each line and also each one is a tuple 
+                int upToThisLine = (int)Math.Ceiling(a * getTotalLineOfFile(sr));
+
+                // first line is the list of attribute names separated with '\t'
+                // first get the attribute names and save them to attribute list
+                string line = sr.ReadLine();
+
+                // every attribute names are seperated with '\t' so delimeter is '\t'
+                string[] namesOfAttributeAndClass = line.Split('\t');
             
-            int row = 1;
-            JDataSet targetDataSet = trainDataSet;
-
-            while (!sr.EndOfStream)
-            {
-                string eachLine = sr.ReadLine();
-                // each attribute values are separated with '\t'
-                string[] attrValues = eachLine.Split('\t');
-
-                JTuple eachTuple = new JTuple();
-
-                if (row > upToThisLine)
+                // 0 to (# of column - 1) because the last one is class label.
+                for(int i = 0; i < namesOfAttributeAndClass.Length - 1; ++i)
                 {
-                    targetDataSet = testDataSet;
+                    attributeList.Add(namesOfAttributeAndClass[i]);
+                    outcomes[namesOfAttributeAndClass[i]] = new HashSet<string>();
                 }
 
-                // save values to eachTuple(JTuple)
-                for (int i = 0; i < attrValues.Length ; ++i)
-                {
-                    if ( i != attrValues.Length - 1 )
-                    {
-                        eachTuple.setAttrAndItsValue(namesOfAttributeAndClass[i], attrValues[i]);
-                        outcomes[namesOfAttributeAndClass[i]].Add(attrValues[i]);
-                    }
-                    else
-                    {
-                        eachTuple.ClassLabel = attrValues[i];
-                    }
-                }
-                targetDataSet.insertTuple(eachTuple);
-                row++;
-            }
+                // read each line and also each one is a tuple 
             
+                int row = 1;
+                JDataSet targetDataSet = trainDataSet;
+
+                while (!sr.EndOfStream)
+                {
+                    string eachLine = sr.ReadLine();
+                    // each attribute values are separated with '\t'
+                    string[] attrValues = eachLine.Split('\t');
+
+                    JTuple eachTuple = new JTuple();
+
+                    if (row > upToThisLine)
+                    {
+                        targetDataSet = testDataSet;
+                    }
+
+                    // save values to eachTuple(JTuple)
+                    for (int i = 0; i < attrValues.Length ; ++i)
+                    {
+                        if ( i != attrValues.Length - 1 )
+                        {
+                            eachTuple[namesOfAttributeAndClass[i]] = attrValues[i];
+                            outcomes[namesOfAttributeAndClass[i]].Add(attrValues[i]);
+                        }
+                        else
+                        {
+                            eachTuple.ClassLabel = attrValues[i];
+                        }
+                    }
+                    targetDataSet.insertTuple(eachTuple);
+                    row++;
+                }
+            }
             return bReadWell;
         }
 
@@ -116,7 +117,7 @@ namespace dt
                 foreach (JTuple eachTuple in D.Tuples)
                 {
                     // ex.) attrValueOfEachTuple == ">=30" 
-                    string attrValueOfEachTuple = eachTuple.getAttrValue(attrName);
+                    string attrValueOfEachTuple = eachTuple[attrName];
 
                     // if there is no dataset partition
                     // allocate new JDataSet 
@@ -172,7 +173,7 @@ namespace dt
                 foreach(JTuple eachTuple in D.Tuples)
                 {
                     // ex.)    eachTuple_AttrValue = "<=30"
-                    string eachTuple_AttrValue = eachTuple.getAttrValue(eachAttributeName);
+                    string eachTuple_AttrValue = eachTuple[eachAttributeName];
                     
                     if (!partitions.ContainsKey(eachTuple_AttrValue))
                     {
@@ -272,7 +273,7 @@ namespace dt
             {
                 // ex.) splittingAttribute == "age"
                 // ex.) branchName == "<=30"
-                string branchName = eachTuple.getAttrValue(splittingAttribute);
+                string branchName = eachTuple[splittingAttribute];
                 if (!branches.ContainsKey(branchName)) 
                 {
                     branches[branchName] = new JDataSet();
@@ -284,13 +285,13 @@ namespace dt
             {
                 if (branches.ContainsKey(eachOutcome))
                 {
-                    retTreeNode.PathDirectory[eachOutcome] = generateDecisionTree(branches[eachOutcome], attributeList, attributeSelector, outcomes);
+                    retTreeNode[eachOutcome] = generateDecisionTree(branches[eachOutcome], attributeList, attributeSelector, outcomes);
                 }
                 else
                 {
                     // if there is no data partition that satisfies attr(splittingAttribute) == eachOutcome
                     // majority voting 
-                    retTreeNode.PathDirectory[eachOutcome] = new JTreeNode(JTreeNode.JTreeNodeType.RESULT, D.MajorityClass);
+                    retTreeNode[eachOutcome] = new JTreeNode(JTreeNode.JTreeNodeType.RESULT, D.MajorityClass);
                 }
             }
 
@@ -315,10 +316,11 @@ namespace dt
             // follow until the node that is pointed by follower is RESULT type node. (it means classification process has done )
             while(!(follower.NodeType == JTreeNode.JTreeNodeType.RESULT))
             {
-                follower = follower.PathDirectory[testTuple.getAttrValue(follower.Value)];
+                follower = follower[testTuple[follower.Indicator]];
             }
 
-            return follower.Value;
+            // after the while loop, Indicator means the class label of the testTuple
+            return follower.Indicator;
         }
 
         public static double getAccuracyWithinTrainedDataSet(JTreeNode decisionTree, JDataSet testDataSet)
