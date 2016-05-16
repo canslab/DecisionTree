@@ -19,15 +19,12 @@ namespace dt
     /// </summary>
     class JDecisionTree
     {
-        private List<string> AttributeList { get; set; }
-        private Dictionary<string, HashSet<string>> Outcomes { get; set; }
-        private JDataSet TrainDataSet { get; set; }
-        private JDataSet TestDataSetWithInTrainData { get; set; }
-        private JTreeNode DecisionTree { get; set; }
-
         public enum AttributeSelectionMeasure { INFO_GAIN, GAIN_RATIO, GINI_INDEX };
+        
+        // public properties
         public bool MadeComplete { get; private set; }
 
+        // Constructor
         public JDecisionTree(string inputFileName, int trainingPercent)
         {
             AttributeList = new List<string>();
@@ -38,7 +35,10 @@ namespace dt
 
             readFileAndMakeDataSet(inputFileName, trainingPercent);
         }
-                      
+        
+        // when user call this method, it starts to make decision tree,
+        // if it is done successfully, MadeComplete will be true
+        // otherwise, it will be false                      
         public bool makeTree(AttributeSelectionMeasure measureType)
         {
             switch(measureType)
@@ -83,7 +83,7 @@ namespace dt
             return (double)nCorrectAnswers / TestDataSetWithInTrainData.TuplesCount;
         }
 
-        public static void processTestDataAndWriteToFile(string testInputFileName, JTreeNode decisionTree, string outputFileName)
+        public void processTestDataAndWriteToFile(string testInputFileName, string outputFileName)
         {
             using (StreamWriter resultFileWriter = new StreamWriter(new FileStream(outputFileName, FileMode.Create)))
             using (StreamReader testFileReader = new StreamReader(new FileStream(testInputFileName, FileMode.Open)))
@@ -115,11 +115,10 @@ namespace dt
             }
         }
 
-
         /*********************************************************************/
         /****************** PRIVATE METHODS **********************************/
         /*********************************************************************/
-
+        
         /// <summary>
         /// 
         /// read training set file 
@@ -296,6 +295,16 @@ namespace dt
             return follower.Indicator;
         }
 
+        /*********************************************************************/
+        /****************** PRIVATE PROPERTIES *******************************/
+        /*********************************************************************/
+        
+        private List<string> AttributeList { get; set; }
+        private Dictionary<string, HashSet<string>> Outcomes { get; set; }
+        private JDataSet TrainDataSet { get; set; }
+        private JDataSet TestDataSetWithInTrainData { get; set; }
+        private JTreeNode DecisionTree { get; set; }
+        
         /****************************************************************************/
         /****************** PRIVATE STATIC METHODS **********************************/
         /****************************************************************************/
@@ -479,6 +488,8 @@ namespace dt
             
             return totalLine--;
         }
+        
+        
                
     }
 }
