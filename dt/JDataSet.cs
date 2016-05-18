@@ -11,30 +11,76 @@ namespace dt
     /// </summary>
     class JDataSet
     {
+        /************************************************************************/
+        /***********        Public Methods                              *********/
+        /************************************************************************/
+        public double GetProbability(string classLabel)
+        {
+            int count = 0;
+            if (this.SameClass)
+            {
+                return 0;
+            }
+
+            foreach (JTuple eachTuple in TuplesList)
+            {
+                if (classLabel == eachTuple.ClassLabel)
+                {
+                    count++;
+                }
+            }
+
+            return ((double)count / TuplesList.Count);
+        }
+        public void InsertTuple(JTuple tuple)
+        {
+
+            if (tuple != null)
+            {
+                TuplesList.Add(tuple);
+            }
+        }
+
+        /************************************************************************/
+        /***********        Constructors                                *********/
+        /************************************************************************/
         public JDataSet()
         {
-            Tuples = new List<JTuple>();
-            mMajorityClass = null;
+            mTupleList = new List<JTuple>();
         }
         public JDataSet(List<JTuple> srcTuples)
         {
-            Tuples = srcTuples;
-            mMajorityClass = null;
+            mTupleList = new List<JTuple>(srcTuples);
+        }
+        public JDataSet(JDataSet sourceDataSet)         // copy constructor
+        {
+            mTupleList = new List<JTuple>(sourceDataSet.mTupleList);
+        }
+
+        /************************************************************************/
+        /************           Properites                              *********/
+        /************************************************************************/
+        public JTuple this[int index]
+        {
+            get
+            {
+                return mTupleList[index];
+            }
         }
         public bool SameClass
         {
             get
             {
                 string firstClass;
-                if (Tuples.Count == 0)
+                if (TuplesList.Count == 0)
                 {
                     return true;
                 }
                 else
                 {
-                    firstClass = Tuples[0].ClassLabel;
+                    firstClass = TuplesList[0].ClassLabel;
                 }
-                foreach (JTuple eachTuple in Tuples)
+                foreach (JTuple eachTuple in TuplesList)
                 {
                     if (firstClass != eachTuple.ClassLabel)
                     {
@@ -44,13 +90,11 @@ namespace dt
                 return true;
             }
         }
-
-        // get # of tuples in this JDataSet
         public int TuplesCount
         {
             get
             {
-                return Tuples.Count;
+                return TuplesList.Count;
             }            
         }
         public string MajorityClass
@@ -64,7 +108,7 @@ namespace dt
                 
                 Dictionary<string, int> record = new Dictionary<string, int>();
 
-                foreach(JTuple eachTuple in Tuples)
+                foreach(JTuple eachTuple in TuplesList)
                 {
                     if (!record.ContainsKey(eachTuple.ClassLabel))
                     {
@@ -87,37 +131,18 @@ namespace dt
                 return mMajorityClass;
             }
         }
-
-        private string mMajorityClass;
-        public double getProbability(string classLabel)
+        public List<JTuple> TuplesList
         {
-            int count = 0;
-            if (this.SameClass)
+            get
             {
-                return 0;
-            }
-
-            foreach(JTuple eachTuple in Tuples)
-            {
-                if (classLabel == eachTuple.ClassLabel)
-                {
-                    count++;
-                }    
-            }
-
-            return ((double)count / Tuples.Count);
-        }
-        public void insertTuple(JTuple tuple)
-        {
-            
-            if (tuple != null)
-            {
-                Tuples.Add(tuple);
+                return mTupleList;
             }
         }
-        public List<JTuple> Tuples
-        {
-            get;
-        }
+
+        /*************************************************************************/
+        /**************         Member variables                            ******/
+        /*************************************************************************/
+        private string mMajorityClass = null;
+        private List<JTuple> mTupleList = null;
     }
 }

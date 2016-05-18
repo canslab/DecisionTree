@@ -18,18 +18,27 @@ namespace dt
 
     class JTuple
     {
-        // constructor     
+        /************************************************************************/
+        /***********        Constructors                                *********/
+        /************************************************************************/
         public JTuple()
         {
-            // instantiate dictionary ( which contains all column name and its corresponding value) 
+            // instantiate dictionary ( which contains every attribute name and its corresponding value) 
             mAttrAndValue = new Dictionary<string, string>();
 
             // normal value of finalClass starts from 1 to (numberOfClass)
             ClassLabel = null;
         }
+        public JTuple(JTuple srcTuple)      // copy constructor
+        {
+            mAttrAndValue = new Dictionary<string, string>(srcTuple.mAttrAndValue);
+            ClassLabel = srcTuple.ClassLabel;
+        }
 
-        // this indicates the classification result
-        public string ClassLabel
+        /************************************************************************/
+        /***********        Properties                                  *********/
+        /************************************************************************/
+        public string ClassLabel        // this indicates the classification result
         {
             get; set;
         }
@@ -58,8 +67,9 @@ namespace dt
             }
         }
 
-
-        // this member variable is encapsulated using above indexer.
-        private Dictionary<string, string> mAttrAndValue;
+        /************************************************************************/
+        /***********        Private member Variables                    *********/
+        /************************************************************************/
+        private Dictionary<string, string> mAttrAndValue;   // this member variable is encapsulated using above indexer.
     }
 }

@@ -20,22 +20,38 @@ namespace dt
     class JDecisionTree
     {
         public enum AttributeSelectionMeasure { INFO_GAIN, GAIN_RATIO, GINI_INDEX };
-        
-        // public properties
-        public bool MadeComplete { get; private set; }
 
-        // Constructor
-        public JDecisionTree(string inputFileName, int trainingPercent)
+
+        /*********************************************************************/
+        /******************   Constructors   *********************************/
+        /*********************************************************************/
+        //public JDecisionTree(string inputTrainingFile, int trainingPercent)     // Constructor
+        //{
+        //    AttributeList = new List<string>();
+        //    Outcomes = new Dictionary<string, HashSet<string>>();
+        //    TrainDataSet = new JDataSet();
+        //    TestDataSetWithInTrainData = new JDataSet();
+        //    MadeComplete = false;
+
+        //    makeDataSetFromTrainingFile(inputTrainingFile, trainingPercent);
+        //}
+
+        public JDecisionTree(string[] columnNamesList, Dictionary<string, HashSet<string>> OutcomesPerAttribute, JDataSet trainingDataSet)
         {
             AttributeList = new List<string>();
-            Outcomes = new Dictionary<string, HashSet<string>>();
-            TrainDataSet = new JDataSet();
-            TestDataSetWithInTrainData = new JDataSet();
+            for(int i = 0; i < columnNamesList.Length - 1; ++i)
+            {
+                AttributeList.Add(columnNamesList[i]);
+            }
+            Outcomes = new Dictionary<string, HashSet<string>>(OutcomesPerAttribute);
+            TrainDataSet = new JDataSet(trainingDataSet);
+            ClassLabelName = columnNamesList[columnNamesList.Length - 1];
             MadeComplete = false;
-
-            readFileAndMakeDataSet(inputFileName, trainingPercent);
         }
-        
+
+        /*********************************************************************/
+        /****************** Public Methods     *******************************/
+        /*********************************************************************/
         // when user call this method, it starts to make decision tree,
         // if it is done successfully, MadeComplete will be true
         // otherwise, it will be false                      
@@ -72,7 +88,7 @@ namespace dt
                 return 1;
             }
 
-            foreach (JTuple eachTuple in TestDataSetWithInTrainData.Tuples)
+            foreach (JTuple eachTuple in TestDataSetWithInTrainData.TuplesList)
             {
                 if ( eachTuple.ClassLabel == testTuple(eachTuple))
                 {
@@ -83,114 +99,65 @@ namespace dt
             return (double)nCorrectAnswers / TestDataSetWithInTrainData.TuplesCount;
         }
 
-        public void processTestDataAndWriteToFile(string testInputFileName, string outputFileName)
+        public string testTuple(JTuple testTuple)
         {
-            using (StreamWriter resultFileWriter = new StreamWriter(new FileStream(outputFileName, FileMode.Create)))
-            using (StreamReader testFileReader = new StreamReader(new FileStream(testInputFileName, FileMode.Open)))
+            JTreeNode follower = DecisionTree;
+
+            // follow until the node that is pointed by follower is RESULT type node. (it means classification process has done )
+            while (!(follower.NodeType == JTreeNode.JTreeNodeType.RESULT))
             {
-                // before starting the process, read one line from testInputFile.
-                // because the first line is the list of attribute names, so it is needed to be ignored.
-                string attributeLine = testFileReader.ReadLine();
-                string[] attributeNames = attributeLine.Split('\t');
-                                                
-                while(!testFileReader.EndOfStream)
-                {
-                    JTuple eachTuple = new JTuple();
-                    string eachLine = testFileReader.ReadLine();
-                    string[] attributeValues = eachLine.Split('\t');
-
-                    int index = 0;
-                    foreach(string eachAttributeValue in attributeValues)
-                    {
-                        eachTuple[attributeNames[index++]] = eachAttributeValue;
-                    }
-
-                    
-
-
-                }
-
-
-
+                follower = follower[testTuple[follower.Indicator]];
             }
+
+            // after the while loop, Indicator means the class label of the testTuple
+            return follower.Indicator;
         }
+
+        //public void processTestDataAndWriteToFile(string testInputFileName, string outputFileName)
+        //{
+        //    using (StreamWriter resultFileWriter = new StreamWriter(new FileStream(outputFileName, FileMode.Create)))
+        //    using (StreamReader testFileReader = new StreamReader(new FileStream(testInputFileName, FileMode.Open)))
+        //    {
+        //        testFileReader.ReadLine();
+
+        //        for (int i = 0;  i < UpperRow.Length; ++i)
+        //        {
+        //            resultFileWriter.Write(UpperRow[i]);
+        //            if ( i == UpperRow.Length -1)
+        //            {
+        //                resultFileWriter.WriteLine();
+        //            }
+        //            else
+        //            {
+        //                resultFileWriter.Write('\t');
+        //            }
+        //        }
+
+        //        while (!testFileReader.EndOfStream)
+        //        {
+        //            JTuple eachTuple = new JTuple();
+        //            string eachLine = testFileReader.ReadLine();
+        //            string[] attributeValues = eachLine.Split('\t');
+
+        //            resultFileWriter.Write(eachLine);
+        //            resultFileWriter.Write('\t');
+
+        //            int index = 0;
+        //            foreach (string eachAttributeValue in attributeValues)
+        //            {
+        //                eachTuple[UpperRow[index++]] = eachAttributeValue;
+        //            }
+
+        //            string testTupleLabel = testTuple(eachTuple);
+        //            resultFileWriter.WriteLine(testTupleLabel);
+        //        }
+        //    }
+        //}
 
         /*********************************************************************/
         /****************** PRIVATE METHODS **********************************/
         /*********************************************************************/
         
-        /// <summary>
-        /// 
-        /// read training set file 
-        /// 
-        /// 
-        /// </summary>
-        /// <param name="inputFileName"> the list that will contain the attributes' names </param>
-        /// <param name="attributeList"> the list of attributes </param>
-        /// <param name="trainDataSet"> the dataSet that will contain tuples </param>
-        /// <returns></returns>
-        private bool readFileAndMakeDataSet(string inputFileName, int trainingPercent)
-        {
-            bool bReadWell = false;
-
-            // open training set file 
-            using (StreamReader sr = new StreamReader(new FileStream(inputFileName, FileMode.Open)))
-            {
-                double a = (double)trainingPercent / 100;
-
-                int upToThisLine = (int)Math.Ceiling(a * getTotalLineOfFile(sr));
-
-                // first line is the list of attribute names separated with '\t'
-                // first get the attribute names and save them to attribute list
-                string line = sr.ReadLine();
-
-                // every attribute names are seperated with '\t' so delimeter is '\t'
-                string[] namesOfAttributeAndClass = line.Split('\t');
-
-                // 0 to (# of column - 1) because the last one is class label.
-                for (int i = 0; i < namesOfAttributeAndClass.Length - 1; ++i)
-                {
-                    AttributeList.Add(namesOfAttributeAndClass[i]);
-                    Outcomes[namesOfAttributeAndClass[i]] = new HashSet<string>();
-                }
-
-                // read each line and also each one is a tuple 
-                int row = 1;
-                JDataSet targetDataSet = TrainDataSet;
-
-                while (!sr.EndOfStream)
-                {
-                    string eachLine = sr.ReadLine();
-                    // each attribute values are separated with '\t'
-                    string[] attrValues = eachLine.Split('\t');
-
-                    JTuple eachTuple = new JTuple();
-
-                    if (row > upToThisLine)
-                    {
-                        targetDataSet = TestDataSetWithInTrainData;
-                    }
-
-                    // save values to eachTuple(JTuple)
-                    for (int i = 0; i < attrValues.Length; ++i)
-                    {
-                        if (i != attrValues.Length - 1)
-                        {
-                            eachTuple[namesOfAttributeAndClass[i]] = attrValues[i];
-                            Outcomes[namesOfAttributeAndClass[i]].Add(attrValues[i]);
-                        }
-                        else
-                        {
-                            eachTuple.ClassLabel = attrValues[i];
-                        }
-                    }
-                    targetDataSet.insertTuple(eachTuple);
-                    row++;
-                }
-            }
-            return bReadWell;
-        }
-
         /// <summary>
         /// It creates decision tree and return its reference 
         /// 
@@ -212,7 +179,7 @@ namespace dt
             // termination condition 2
             if (D.SameClass) // if all the tuples are same class
             {
-                retTreeNode = new JTreeNode(JTreeNode.JTreeNodeType.RESULT, D.Tuples[0].ClassLabel);
+                retTreeNode = new JTreeNode(JTreeNode.JTreeNodeType.RESULT, D.TuplesList[0].ClassLabel);
                 retTreeNode.TuplesCount = D.TuplesCount;
                 return retTreeNode;
             }
@@ -242,7 +209,7 @@ namespace dt
             // Therefore, branches["<=30"] means the data partition that satisfies 'splitting attribute <= 30'
             Dictionary<string, JDataSet> branches = new Dictionary<string, JDataSet>();
 
-            foreach (JTuple eachTuple in D.Tuples)
+            foreach (JTuple eachTuple in D.TuplesList)
             {
                 // ex.) splittingAttribute == "age"
                 // ex.) branchName == "<=30"
@@ -251,7 +218,7 @@ namespace dt
                 {
                     branches[branchName] = new JDataSet();
                 }
-                branches[branchName].insertTuple(eachTuple);
+                branches[branchName].InsertTuple(eachTuple);
             }
 
             foreach (string eachOutcome in Outcomes[splittingAttribute])
@@ -281,20 +248,12 @@ namespace dt
         /// <param name="decisionTree"> decision tree </param>
         /// <param name="testTuple"> the tuple that you wants to classify </param>
         /// <returns></returns>
-        private string testTuple(JTuple testTuple)
-        {
-            JTreeNode follower = DecisionTree;
 
-            // follow until the node that is pointed by follower is RESULT type node. (it means classification process has done )
-            while (!(follower.NodeType == JTreeNode.JTreeNodeType.RESULT))
-            {
-                follower = follower[testTuple[follower.Indicator]];
-            }
-
-            // after the while loop, Indicator means the class label of the testTuple
-            return follower.Indicator;
-        }
-
+        /*********************************************************************/
+        /****************** PUBLIC PROPERTIES ********************************/
+        /*********************************************************************/
+        public bool MadeComplete { get; private set; }
+        
         /*********************************************************************/
         /****************** PRIVATE PROPERTIES *******************************/
         /*********************************************************************/
@@ -304,7 +263,9 @@ namespace dt
         private JDataSet TrainDataSet { get; set; }
         private JDataSet TestDataSetWithInTrainData { get; set; }
         private JTreeNode DecisionTree { get; set; }
-        
+
+        private string ClassLabelName { get; set; }
+     
         /****************************************************************************/
         /****************** PRIVATE STATIC METHODS **********************************/
         /****************************************************************************/
@@ -328,7 +289,7 @@ namespace dt
             {
                 Dictionary<string, JDataSet> dataPartiotions = new Dictionary<string, JDataSet>();
 
-                foreach (JTuple eachTuple in D.Tuples)
+                foreach (JTuple eachTuple in D.TuplesList)
                 {
                     // ex.) attrValueOfEachTuple == ">=30" 
                     string attrValueOfEachTuple = eachTuple[attrName];
@@ -340,7 +301,7 @@ namespace dt
                         dataPartiotions[attrValueOfEachTuple] = new JDataSet();
                     }
 
-                    dataPartiotions[attrValueOfEachTuple].insertTuple(eachTuple);
+                    dataPartiotions[attrValueOfEachTuple].InsertTuple(eachTuple);
                 }
 
                 var keys = dataPartiotions.Keys;
@@ -384,7 +345,7 @@ namespace dt
                 // example)   <">=30", D1> 
                 Dictionary<string, JDataSet> partitions = new Dictionary<string, JDataSet>();
 
-                foreach (JTuple eachTuple in D.Tuples)
+                foreach (JTuple eachTuple in D.TuplesList)
                 {
                     // ex.)    eachTuple_AttrValue = "<=30"
                     string eachTuple_AttrValue = eachTuple[eachAttributeName];
@@ -394,7 +355,7 @@ namespace dt
                         partitions[eachTuple_AttrValue] = new JDataSet();
                     }
 
-                    partitions[eachTuple_AttrValue].insertTuple(eachTuple);
+                    partitions[eachTuple_AttrValue].InsertTuple(eachTuple);
                 }
 
                 double curaAvgEntropy = 0;
@@ -450,7 +411,7 @@ namespace dt
             // 
             //   labelCount['yes'] == 2
             //   labelCount['no'] == 1
-            foreach(JTuple eachTuple in D.Tuples)
+            foreach(JTuple eachTuple in D.TuplesList)
             {
                 if (!labelCount.ContainsKey(eachTuple.ClassLabel))
                 {

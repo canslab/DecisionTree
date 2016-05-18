@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="JDataSet.cs" />
+    <Compile Include="JEnsemble.cs" />
     <Compile Include="JTreeNode.cs" />
     <Compile Include="JDecisionTree.cs" />
     <Compile Include="JTuple.cs" />
